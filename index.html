@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お風呂の日決定アプリ</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f7da; color: #333; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { max-width: 500px; width: 100%; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); box-sizing: border-box; }
+        h1 { text-align: center; color: #2c5e3b; font-size: 24px; margin-bottom: 20px; }
+        .member-section { border-bottom: 2px dashed #e0e0e0; padding-bottom: 15px; margin-bottom: 15px; }
+        .member-name { font-weight: bold; font-size: 18px; color: #4a7c59; margin-bottom: 10px; }
+        .days-grid { display: flex; justify-content: space-between; }
+        .day-option { flex: 1; text-align: center; }
+        .day-option label { display: block; margin-bottom: 5px; font-size: 14px; }
+        select { width: 85%; padding: 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; text-align: center; }
+        #result { margin-top: 25px; padding: 15px; border-radius: 10px; text-align: center; font-size: 20px; font-weight: bold; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .failure { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status { text-align: center; color: #666; font-size: 12px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>♨️ お風呂の日決定ナビ</h1>
+    
+    <div id="inputs">
+        <div class="member-section">
+            <div class="member-name">こーちん</div>
+            <div class="days-grid">
+                <div class="day-option"><label>火</label><select id="kochin-tue" onchange="updateData('kochin', 'tue', this.value)"><option value="x">×</option><option value="o">〇</option></select></div>
+                <div class="day-option"><label>水</label><select id="kochin-wed" onchange="updateData('kochin', 'wed', this.value)"><option value="x">×</option><option value="o">〇</option></select></div>
+                <div class="day-option"><label>木</label><select id="kochin-thu" onchange="updateData('kochin', 'thu', this.value)"><option value="x">×</option><option value="o">〇</option></select></div>
+            </div>
+        </div>
+        <div class="member-section">
+            <div class="member-name">やなちゃん</div>
+            <div class="days-grid">
+                <div class="day-option"><label>火</label><select id="yana-tue" onchange="updateData('yana', 'tue', this.value)"><option value="x">×</option><option value="o">〇</option></select></div>
+                <div class="day-option"><label>水</label><select id="yana-wed" onchange="updateData('yana', 'wed', this.value)"><option value="x">×</option><option value="o">〇</option></select></div>
+                <div class="day-option"><label>木</label><select id="yana-thu" onchange="updateData('yana', 'thu', this.value)"><option value="x">×</option><option value="o">〇</option></select></div>
+            </div>
+        </div>
+        <div class="member-section">
+            <div class="member-name">もりしゅー</div>
+            <div class="days-grid">
+                <div class="day-option"><label>火</label><select id="morishu-tue" onchange="updateData('morishu', 'tue', this.value)"><option value="x">×</option><option value="o">〇</option></select></div>
+                <div class="day-option"><label>水</label><select id="morishu-wed" onchange="updateData('morishu', 'wed', this.value)"><option value="x">×</option><option value="o">〇</option></select></div>
+                <div class="day-option"><label>木</label><select id="morishu-thu" onchange="updateData('morishu', 'thu', this.value)"><option value="x">×</option><option value="o">〇</option></select></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="result" class="failure">読み込み中...</div>
+    <div class="status">※誰かが変更すると全員の画面が自動で更新されます</div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // 👇 【重要】ここをFirebaseでコピーした自分たちの設定にそっくり入れ替えてください！
+  const firebaseConfig = {
+  apiKey: "AIzaSyDaADRzzj6rei4O8q_h-56NOsKDXBQDBa0",
+  authDomain: "bath-navi.firebaseapp.com",
+  projectId: "bath-navi",
+  storageBucket: "bath-navi.firebasestorage.app",
+  messagingSenderId: "338883843967",
+  appId: "1:338883843967:web:ed6bb10e4d0fb8f3fcac4a"
+};
+
+  // Firebaseの初期化
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const dbRef = ref(db, 'bath_schedule');
+
+  // グローバル関数として公開（HTMLのonchangeから呼ぶため）
+  window.updateData = function(member, day, value) {
+      set(ref(db, `bath_schedule/${member}/${day}`), value);
+  }
+
+  // データベースの値が変わったらリアルタイムに画面を更新
+  onValue(dbRef, (snapshot) => {
+      const data = snapshot.val() || {
+          kochin: { tue: 'x', wed: 'x', thu: 'x' },
+          yana: { tue: 'x', wed: 'x', thu: 'x' },
+          morishu: { tue: 'x', wed: 'x', thu: 'x' }
+      };
+
+      // 各セレクトボックスの表示をデータベースに合わせる
+      for (let member in data) {
+          for (let day in data[member]) {
+              const el = document.getElementById(`${member}-${day}`);
+              if (el) el.value = data[member][day];
+          }
+      }
+
+      // 曜日の集計
+      const days = [
+          { name: '木曜日', count: 0, priority: 3, key: 'thu' },
+          { name: '水曜日', count: 0, priority: 2, key: 'wed' },
+          { name: '火曜日', count: 0, priority: 1, key: 'tue' }
+      ];
+
+      days.forEach(d => {
+          if (data.kochin[d.key] === 'o') d.count++;
+          if (data.yana[d.key] === 'o') d.count++;
+          if (data.morishu[d.key] === 'o') d.count++;
+      });
+
+      // 並び替え（1. 人数が多い順、2. 曜日優先度順）
+      days.sort((a, b) => {
+          if (b.count !== a.count) return b.count - a.count;
+          return b.priority - a.priority;
+      });
+
+      const bestDay = days[0];
+      const resultDiv = document.getElementById('result');
+
+      if (bestDay.count >= 2) {
+          resultDiv.className = 'success';
+          resultDiv.innerHTML = `🎉 開催決定！<br><span style="font-size: 28px; color: #d9534f;">${bestDay.name}</span><br>(${bestDay.count}人行くよ！)`;
+      } else {
+          resultDiv.className = 'failure';
+          resultDiv.innerHTML = `😭 今回は見送り...<br>(2人以上集まる曜日がありません)`;
+      }
+  });
+</script>
+
+</body>
+</html>
+
